@@ -1,11 +1,11 @@
 /**
- * API Route: Tech Debt Map Analysis
- * Analyzes repository architecture and technical debt
+ * API Route: Code Issues Analysis
+ * Extracts errors and non-optimal code from repository
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchCompleteRepoData } from '@/lib/github';
-import { analyzeTechDebt } from '@/lib/gemini';
+import { analyzeCodeIssues } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
@@ -22,24 +22,24 @@ export default async function handler(
       return res.status(400).json({ error: 'Repository URL is required' });
     }
 
-    console.log('[TechDebt] Analyzing repository:', repoUrl);
+    console.log('[CodeIssues] Analyzing repository:', repoUrl);
 
     // Fetch repository data
     const repoData = await fetchCompleteRepoData(repoUrl);
-    console.log('[TechDebt] Repository data fetched, starting tech debt analysis...');
+    console.log('[CodeIssues] Repository data fetched, starting code issues analysis...');
 
-    // Analyze tech debt using Gemini AI
-    const techDebtAnalysis = await analyzeTechDebt(repoData);
-    console.log('[TechDebt] Tech debt analysis complete');
+    // Analyze code issues using Gemini AI
+    const issuesAnalysis = await analyzeCodeIssues(repoData);
+    console.log('[CodeIssues] Code issues analysis complete');
 
     return res.status(200).json({
       success: true,
-      data: techDebtAnalysis,
+      data: issuesAnalysis,
     });
   } catch (error: any) {
-    console.error('[TechDebt] Error:', error);
+    console.error('[CodeIssues] Error:', error);
     return res.status(500).json({
-      error: error.message || 'Failed to analyze tech debt',
+      error: error.message || 'Failed to analyze code issues',
     });
   }
 }

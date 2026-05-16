@@ -1,16 +1,15 @@
 /**
  * API Route: Dead Code Detection
- * Identifies unused functions, classes, and exports in a repository
+ * Analyzes repository for unused code, functions, variables, and files
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { fetchRepoContext, buildContextString } from '@/lib/github';
-import { analyzewithBob, getFeaturePrompt } from '@/lib/bob';
-import type { BobAnalysisResponse } from '@/types';
+import { fetchCompleteRepoData } from '@/lib/github';
+import { analyzeDeadCode } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<BobAnalysisResponse | { error: string }>
+  res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -23,33 +22,24 @@ export default async function handler(
       return res.status(400).json({ error: 'Repository URL is required' });
     }
 
-    console.log(`[DeadCode] Analyzing repository: ${repoUrl}`);
+    console.log('[DeadCode] Analyzing repository:', repoUrl);
 
-    // Step 1: Fetch repository context from GitHub
-    const repoContext = await fetchRepoContext(repoUrl);
-    console.log(`[DeadCode] Fetched ${repoContext.analyzedFiles} files`);
+    // Fetch repository data
+    const repoData = await fetchCompleteRepoData(repoUrl);
+    console.log('[DeadCode] Repository data fetched, starting dead code analysis...');
 
-    // Step 2: Build context string for Bob
-    const contextString = buildContextString(repoContext);
+    // Analyze for dead code using Gemini AI
+    const deadCodeAnalysis = await analyzeDeadCode(repoData);
+    console.log('[DeadCode] Dead code analysis complete');
 
-    // Step 3: Get feature-specific prompt
-    const prompt = getFeaturePrompt('deadcode');
-
-    // Step 4: Analyze with Bob
-    const result = await analyzewithBob({
-      prompt,
-      context: contextString,
-      feature: 'deadcode',
-      repoUrl,
+    return res.status(200).json({
+      success: true,
+      data: deadCodeAnalysis,
     });
-
-    console.log(`[DeadCode] Analysis complete`);
-
-    return res.status(200).json(result);
   } catch (error: any) {
     console.error('[DeadCode] Error:', error);
     return res.status(500).json({
-      error: error.message || 'Failed to analyze repository',
+      error: error.message || 'Failed to analyze dead code',
     });
   }
 }

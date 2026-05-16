@@ -1,379 +1,492 @@
 /**
- * Main Chat Interface
- * ChatGPT-style interface for Bob Code Analyzer
+ * Main Dashboard Interface
+ * GitHub Repository Analyzer - Redesigned with Gorang Theme
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Send, Loader2, Paperclip, Image as ImageIcon } from 'lucide-react';
-import type { BobAnalysisResponse } from '@/types';
+import Sidebar from '@/components/Sidebar';
+import LandingPage from '@/components/LandingPage';
+import DeadCodeView from '@/components/DeadCodeView';
+import TechDebtMapView from '@/components/TechDebtMapView';
+import CodeIssuesView from '@/components/CodeIssuesView';
+import { Star, GitFork, Eye, AlertCircle, Users, GitCommit, FileCode, Package, Brain, Shield, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import { addRecentRepo } from '@/lib/recentRepos';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  attachments?: Array<{
-    type: 'image' | 'video' | 'file';
-    url: string;
+interface AIAnalysis {
+  codeQualitySummary: string;
+  securityIssues: string[];
+  suggestedImprovements: string[];
+  techStackExplanation: string;
+  overallHealthScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  bestPractices: string[];
+  recommendations: string[];
+}
+
+interface RepoData {
+  repo: {
     name: string;
-  }>;
-  timestamp: Date;
-  metadata?: {
-    filesAnalyzed?: string[];
-    promptUsed?: string;
+    fullName: string;
+    description: string;
+    url: string;
+    stars: number;
+    forks: number;
+    watchers: number;
+    openIssues: number;
+    license: string;
+    defaultBranch: string;
+    createdAt: string;
+    updatedAt: string;
   };
+  languages: {
+    primary: string;
+    breakdown: Array<{
+      language: string;
+      percentage: string;
+      bytes: number;
+    }>;
+  };
+  fileStructure: Array<{
+    path: string;
+    type: string;
+    size?: number;
+  }>;
+  commits: Array<{
+    message: string;
+    author: string;
+    date: string;
+    sha: string;
+  }>;
+  contributors: {
+    total: number;
+    list: Array<{
+      name: string;
+      contributions: number;
+      avatar: string;
+    }>;
+  };
+  readme: string;
+  dependencies: {
+    type: string;
+    list: Array<{
+      name: string;
+      version: string;
+    }>;
+  } | null;
+  aiAnalysis?: AIAnalysis;
 }
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState('');
+  const [repoData, setRepoData] = useState<RepoData | null>(null);
+  const [activeView, setActiveView] = useState('summary');
+  const [demoMode, setDemoMode] = useState(false);
+  const [currentRepoUrl, setCurrentRepoUrl] = useState('');
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const analyzeRepo = async () => {
+    if (!repoUrl.trim()) return;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setAttachments((prev) => [...prev, ...files]);
-    }
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const analyzeInput = async () => {
-    if (!input.trim() && attachments.length === 0) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      attachments: attachments.map((file) => ({
-        type: file.type.startsWith('image/')
-          ? 'image'
-          : file.type.startsWith('video/')
-          ? 'video'
-          : 'file',
-        url: URL.createObjectURL(file),
-        name: file.name,
-      })),
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setAttachments([]);
     setLoading(true);
+    setError('');
+    setRepoData(null);
 
     try {
-      // Detect if input is a GitHub URL
-      const githubUrlPattern = /github\.com\/([^\/]+)\/([^\/\s]+)|^([^\/]+)\/([^\/\s]+)$/;
-      const isGithubUrl = githubUrlPattern.test(input.trim());
+      const response = await fetch('/api/analyze/code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: repoUrl.trim() }),
+      });
 
-      let response;
-      if (isGithubUrl) {
-        // Analyze as repository
-        response = await fetch('/api/analyze/summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ repoUrl: input.trim() }),
-        });
-      } else {
-        // Analyze as plain code or question
-        response = await fetch('/api/analyze/code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: input.trim(),
-            question: input.trim(),
-          }),
-        });
-      }
-
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error((data as any).error || 'Analysis failed');
+        throw new Error(result.error || 'Analysis failed');
       }
 
-      const result = data as BobAnalysisResponse;
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: result.result,
-        timestamp: new Date(),
-        metadata: {
-          filesAnalyzed: result.filesAnalyzed,
-          promptUsed: result.promptUsed,
-        },
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-      scrollToBottom();
-    } catch (error: any) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `Error: ${error.message || 'Failed to analyze'}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setRepoData(result.data);
+      setCurrentRepoUrl(repoUrl.trim());
+      
+      // Add to recent repos on successful analysis
+      addRecentRepo(repoUrl.trim());
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze repository');
     } finally {
       setLoading(false);
     }
   };
 
-  const extractRepoFromContext = (): string => {
-    // Extract repo URL from previous messages
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i];
-      if (msg.role === 'user') {
-        const githubUrlPattern = /github\.com\/([^\/]+)\/([^\/\s]+)|^([^\/]+)\/([^\/\s]+)$/;
-        const match = msg.content.match(githubUrlPattern);
-        if (match) {
-          return msg.content.trim();
-        }
-      }
-    }
-    return '';
+  const handleNewAnalysis = () => {
+    setRepoUrl('');
+    setRepoData(null);
+    setError('');
+    setActiveView('summary');
+    setCurrentRepoUrl('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      analyzeInput();
-    }
+  const handleBackToSummary = () => {
+    setActiveView('summary');
+  };
+
+  const handleDemoModeToggle = () => {
+    setDemoMode(!demoMode);
+  };
+
+  const handleRecentRepoClick = (repoUrl: string) => {
+    setRepoUrl(repoUrl);
+    // Auto-trigger analysis when clicking a recent repo
+    setTimeout(() => {
+      const urlInput = repoUrl;
+      if (urlInput) {
+        setRepoUrl(urlInput);
+        // Trigger analysis after state update
+        setTimeout(() => {
+          analyzeRepo();
+        }, 100);
+      }
+    }, 100);
   };
 
   return (
     <>
       <Head>
-        <title>Bob Code Analyzer</title>
-        <meta name="description" content="AI-Powered Repository Analysis" />
+        <title>Gorang - GitHub Repository Analyzer</title>
+        <meta name="description" content="Analyze GitHub repositories with AI-powered insights" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/logo.png" />
       </Head>
 
-      <main className="flex flex-col h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="Logo"
-              className="w-8 h-8 object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
+      <div className="flex min-h-screen bg-primary-lightCream font-sans">
+        {/* Sidebar */}
+        <Sidebar
+          activeView={activeView}
+          onViewChange={setActiveView}
+          demoMode={demoMode}
+          onDemoModeToggle={handleDemoModeToggle}
+          onNewAnalysis={handleNewAnalysis}
+          onRecentRepoClick={handleRecentRepoClick}
+        />
+
+        {/* Main Content */}
+        <div className="ml-64 flex-1">
+          {!repoData && activeView === 'summary' ? (
+            <LandingPage
+              repoUrl={repoUrl}
+              onRepoUrlChange={setRepoUrl}
+              onAnalyze={analyzeRepo}
+              loading={loading}
             />
-            <h1 className="text-xl font-semibold text-gray-900">
-              Bob Code Analyzer
-            </h1>
-          </div>
-        </header>
-
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-            {messages.length === 0 && (
-              <div className="text-center py-12">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  How can I help you today?
-                </h2>
-                <p className="text-gray-600 mb-8">
-                  Paste a GitHub repository URL or ask me anything about code
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
-                  <button
-                    onClick={() =>
-                      setInput('Analyze https://github.com/vercel/next.js')
-                    }
-                    className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="font-medium text-gray-900 mb-1">
-                      Analyze a repository
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Get insights on any GitHub repo
-                    </div>
-                  </button>
-                  <button
-                    onClick={() =>
-                      setInput('What are common security vulnerabilities in Node.js apps?')
-                    }
-                    className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="font-medium text-gray-900 mb-1">
-                      Ask about code
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Get answers to technical questions
-                    </div>
-                  </button>
+          ) : activeView === 'deadcode' ? (
+            <DeadCodeView
+              repoUrl={currentRepoUrl || repoUrl}
+              onBack={handleBackToSummary}
+            />
+          ) : activeView === 'techdebt' ? (
+            <TechDebtMapView
+              repoUrl={currentRepoUrl || repoUrl}
+              onBack={handleBackToSummary}
+            />
+          ) : activeView === 'issues' ? (
+            <CodeIssuesView
+              repoUrl={currentRepoUrl || repoUrl}
+              onBack={handleBackToSummary}
+            />
+          ) : repoData ? (
+            <div className="p-8 bg-primary-lightCream min-h-screen">
+              {/* Error Display */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-red-800">{error}</div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-4 ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                {message.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-semibold text-sm">B</span>
+              {/* Results Dashboard */}
+              <div className="space-y-6">
+                {/* AI Analysis Section */}
+                {repoData.aiAnalysis && (
+                  <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                    <h2 className="text-2xl font-bold text-primary-brown mb-4 flex items-center gap-2">
+                      <Brain className="w-7 h-7 text-primary-orange" />
+                      AI-Powered Code Analysis
+                    </h2>
+
+                    {/* Overall Health Score */}
+                    <div className="bg-primary-cream rounded-lg p-6 mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-primary-brown">Overall Code Health Score</h3>
+                        <div className="text-4xl font-bold text-primary-orange">
+                          {repoData.aiAnalysis.overallHealthScore}/100
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-4">
+                        <div
+                          className={`h-4 rounded-full ${
+                            repoData.aiAnalysis.overallHealthScore >= 80
+                              ? 'bg-green-500'
+                              : repoData.aiAnalysis.overallHealthScore >= 60
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                          }`}
+                          style={{ width: `${repoData.aiAnalysis.overallHealthScore}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Code Quality Summary */}
+                    <div className="bg-primary-cream rounded-lg p-6 mb-6">
+                      <h3 className="text-lg font-bold text-primary-brown mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        Code Quality Summary
+                      </h3>
+                      <p className="text-primary-brown leading-relaxed">{repoData.aiAnalysis.codeQualitySummary}</p>
+                    </div>
+
+                    {/* Tech Stack Explanation */}
+                    <div className="bg-primary-cream rounded-lg p-6 mb-6">
+                      <h3 className="text-lg font-bold text-primary-brown mb-3 flex items-center gap-2">
+                        <FileCode className="w-5 h-5 text-primary-orange" />
+                        Technology Stack Analysis
+                      </h3>
+                      <p className="text-primary-brown leading-relaxed">{repoData.aiAnalysis.techStackExplanation}</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Strengths */}
+                      {repoData.aiAnalysis.strengths.length > 0 && (
+                        <div className="bg-primary-cream rounded-lg p-6">
+                          <h3 className="text-lg font-bold text-primary-brown mb-3 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-green-600" />
+                            Strengths
+                          </h3>
+                          <ul className="space-y-2">
+                            {repoData.aiAnalysis.strengths.map((strength, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-primary-brown">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-1" />
+                                <span>{strength}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Weaknesses */}
+                      {repoData.aiAnalysis.weaknesses.length > 0 && (
+                        <div className="bg-primary-cream rounded-lg p-6">
+                          <h3 className="text-lg font-bold text-primary-brown mb-3 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-orange-600" />
+                            Areas for Improvement
+                          </h3>
+                          <ul className="space-y-2">
+                            {repoData.aiAnalysis.weaknesses.map((weakness, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-primary-brown">
+                                <XCircle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-1" />
+                                <span>{weakness}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Security Issues */}
+                    {repoData.aiAnalysis.securityIssues.length > 0 && (
+                      <div className="bg-primary-cream rounded-lg p-6 mt-6">
+                        <h3 className="text-lg font-bold text-primary-brown mb-3 flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-red-600" />
+                          Security Analysis
+                        </h3>
+                        <ul className="space-y-2">
+                          {repoData.aiAnalysis.securityIssues.map((issue, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-primary-brown">
+                              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-1" />
+                              <span>{issue}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {repoData.aiAnalysis.recommendations.length > 0 && (
+                      <div className="bg-primary-cream rounded-lg p-6 mt-6">
+                        <h3 className="text-lg font-bold text-primary-brown mb-3 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-primary-orange" />
+                          Recommendations
+                        </h3>
+                        <ul className="space-y-2">
+                          {repoData.aiAnalysis.recommendations.map((rec, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-primary-brown">
+                              <CheckCircle className="w-4 h-4 text-primary-orange flex-shrink-0 mt-1" />
+                              <span>{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
-                <div
-                  className={`max-w-2xl ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-200 text-gray-900'
-                  } rounded-2xl px-4 py-3`}
-                >
-                  {message.attachments && message.attachments.length > 0 && (
-                    <div className="mb-3 space-y-2">
-                      {message.attachments.map((att, idx) => (
-                        <div key={idx} className="rounded overflow-hidden">
-                          {att.type === 'image' && (
-                            <img
-                              src={att.url}
-                              alt={att.name}
-                              className="max-w-full h-auto"
-                            />
-                          )}
-                          {att.type === 'video' && (
-                            <video
-                              src={att.url}
-                              controls
-                              className="max-w-full h-auto"
-                            />
-                          )}
-                          {att.type === 'file' && (
-                            <div className="text-sm">{att.name}</div>
-                          )}
+
+                {/* Repository Overview */}
+                <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-primary-brown mb-4">
+                    {repoData.repo.name}
+                  </h2>
+                  <p className="text-primary-mutedBrown mb-4">{repoData.repo.description}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      <div>
+                        <div className="text-2xl font-bold text-primary-brown">
+                          {repoData.repo.stars.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-primary-mutedBrown">Stars</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <GitFork className="w-5 h-5 text-primary-orange" />
+                      <div>
+                        <div className="text-2xl font-bold text-primary-brown">
+                          {repoData.repo.forks.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-primary-mutedBrown">Forks</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-5 h-5 text-green-500" />
+                      <div>
+                        <div className="text-2xl font-bold text-primary-brown">
+                          {repoData.repo.watchers.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-primary-mutedBrown">Watchers</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      <div>
+                        <div className="text-2xl font-bold text-primary-brown">
+                          {repoData.repo.openIssues.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-primary-mutedBrown">Open Issues</div>
+                      </div>
+                    </div>
+                  </div>
+                  <a
+                    href={repoData.repo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-4 text-primary-orange hover:text-primary-brown font-medium transition-colors"
+                  >
+                    View on GitHub →
+                  </a>
+                </div>
+
+                {/* Languages */}
+                <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                  <h3 className="text-xl font-bold text-primary-brown mb-4 flex items-center gap-2">
+                    <FileCode className="w-6 h-6 text-primary-orange" />
+                    Programming Languages
+                  </h3>
+                  <div className="mb-4">
+                    <div className="text-lg font-semibold text-primary-brown">
+                      Primary: {repoData.languages.primary}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {repoData.languages.breakdown.map((lang) => (
+                      <div key={lang.language}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium text-primary-brown">{lang.language}</span>
+                          <span className="text-primary-mutedBrown">{lang.percentage}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-primary-orange h-2 rounded-full"
+                            style={{ width: `${lang.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent Commits */}
+                <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                  <h3 className="text-xl font-bold text-primary-brown mb-4 flex items-center gap-2">
+                    <GitCommit className="w-6 h-6 text-primary-orange" />
+                    Recent Commits
+                  </h3>
+                  <div className="space-y-4">
+                    {repoData.commits.map((commit, idx) => (
+                      <div key={idx} className="border-l-4 border-primary-orange pl-4 py-2">
+                        <div className="font-medium text-primary-brown">{commit.message}</div>
+                        <div className="text-sm text-primary-mutedBrown mt-1">
+                          <span className="font-semibold">{commit.author}</span> •{' '}
+                          {new Date(commit.date).toLocaleDateString()} •{' '}
+                          <code className="bg-primary-cream px-2 py-1 rounded">{commit.sha}</code>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Contributors */}
+                <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                  <h3 className="text-xl font-bold text-primary-brown mb-4 flex items-center gap-2">
+                    <Users className="w-6 h-6 text-primary-orange" />
+                    Contributors ({repoData.contributors.total})
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {repoData.contributors.list.slice(0, 12).map((contributor, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 bg-primary-cream rounded-lg">
+                        <img
+                          src={contributor.avatar}
+                          alt={contributor.name}
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <div>
+                          <div className="font-medium text-primary-brown text-sm">
+                            {contributor.name}
+                          </div>
+                          <div className="text-xs text-primary-mutedBrown">
+                            {contributor.contributions} commits
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dependencies */}
+                {repoData.dependencies && (
+                  <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                    <h3 className="text-xl font-bold text-primary-brown mb-4 flex items-center gap-2">
+                      <Package className="w-6 h-6 text-primary-orange" />
+                      Dependencies ({repoData.dependencies.type})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {repoData.dependencies.list.slice(0, 30).map((dep, idx) => (
+                        <div key={idx} className="bg-primary-cream rounded-lg p-3">
+                          <div className="font-medium text-primary-brown text-sm">{dep.name}</div>
+                          <div className="text-xs text-primary-mutedBrown">{dep.version}</div>
                         </div>
                       ))}
                     </div>
-                  )}
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                  {message.metadata && (
-                    <details className="mt-3 text-sm opacity-75">
-                      <summary className="cursor-pointer">
-                        View details
-                      </summary>
-                      <div className="mt-2 space-y-2">
-                        {message.metadata.filesAnalyzed && (
-                          <div>
-                            <div className="font-semibold">Files analyzed:</div>
-                            <div className="text-xs">
-                              {message.metadata.filesAnalyzed.join(', ')}
-                            </div>
-                          </div>
-                        )}
+                    {repoData.dependencies.list.length > 30 && (
+                      <div className="mt-4 text-sm text-primary-mutedBrown">
+                        ... and {repoData.dependencies.list.length - 30} more dependencies
                       </div>
-                    </details>
-                  )}
-                </div>
-                {message.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-semibold text-sm">U</span>
+                    )}
                   </div>
                 )}
               </div>
-            ))}
-
-            {loading && (
-              <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-semibold text-sm">B</span>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* Input Area */}
-        <div className="border-t border-gray-200 bg-white px-4 py-4">
-          <div className="max-w-3xl mx-auto">
-            {attachments.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {attachments.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <span className="truncate max-w-xs">{file.name}</span>
-                    <button
-                      onClick={() => removeAttachment(idx)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex items-end gap-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                accept="image/*,video/*,.pdf,.doc,.docx,.txt"
-                multiple
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                title="Attach files"
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
-              <div className="flex-1 relative">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Message Bob Code Analyzer..."
-                  rows={1}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900 bg-white"
-                  style={{ minHeight: '48px', maxHeight: '200px' }}
-                />
-              </div>
-              <button
-                onClick={analyzeInput}
-                disabled={loading || (!input.trim() && attachments.length === 0)}
-                className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                title="Send message"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Bob can analyze GitHub repositories and answer code questions
-            </p>
-          </div>
+          ) : null}
         </div>
-      </main>
+      </div>
     </>
   );
 }

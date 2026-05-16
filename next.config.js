@@ -1,12 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  env: {
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    BOB_API_URL: process.env.BOB_API_URL,
-    BOB_API_KEY: process.env.BOB_API_KEY,
-    MAX_FILES_PER_REPO: process.env.MAX_FILES_PER_REPO || '50',
-  },
+  // SECURITY: Environment variables are automatically available in API routes via process.env
+  // DO NOT expose sensitive credentials to the client-side by adding them to the 'env' config
+  // Only NEXT_PUBLIC_* prefixed variables should be exposed to the browser
   async headers() {
     return [
       {

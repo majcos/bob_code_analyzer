@@ -1,5 +1,5 @@
 /**
- * Core type definitions for the Bob Code Analyzer
+ * Core type definitions for the GitHub Repository Analyzer
  */
 
 // GitHub API Types
@@ -34,72 +34,15 @@ export interface RepoContext {
   analyzedFiles: number;
 }
 
-// Bob API Types
-export interface BobAnalysisRequest {
-  prompt: string;
-  context: string;
-  feature: AnalysisFeature;
-  repoUrl: string;
+// AI Analysis Types
+export interface AIAnalysis {
+  codeQualitySummary: string;
+  securityIssues: string[];
+  suggestedImprovements: string[];
+  techStackExplanation: string;
+  overallHealthScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  bestPractices: string[];
+  recommendations: string[];
 }
-
-export interface BobAnalysisResponse {
-  result: string;
-  filesAnalyzed: string[];
-  promptUsed: string;
-  timestamp: string;
-  feature: AnalysisFeature;
-}
-
-export type AnalysisFeature = 'summary' | 'techdebt' | 'deadcode' | 'chat';
-
-// Analysis Result Types
-export interface AppSummary {
-  description: string;
-  mainPurpose: string;
-  keyFeatures: string[];
-  techStack: string[];
-  architecture: string;
-}
-
-export interface TechDebtItem {
-  file: string;
-  lineCount: number;
-  complexity: 'low' | 'medium' | 'high' | 'critical';
-  issues: string[];
-  priority: number;
-}
-
-export interface DeadCodeItem {
-  file: string;
-  functionName: string;
-  lineNumber: number;
-  reason: string;
-}
-
-export interface ChatResponse {
-  answer: string;
-  relevantFiles: string[];
-  codeSnippets?: Array<{
-    file: string;
-    code: string;
-    explanation: string;
-  }>;
-  warnings?: string[];
-}
-
-// UI State Types
-export interface AnalysisState {
-  loading: boolean;
-  error: string | null;
-  result: BobAnalysisResponse | null;
-  repoUrl: string;
-}
-
-export interface DemoRepo {
-  url: string;
-  name: string;
-  description: string;
-  cached: boolean;
-}
-
-// Made with Bob

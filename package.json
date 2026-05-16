@@ -1,8 +1,8 @@
 {
-  "name": "bob-code-analyzer",
+  "name": "github-repo-analyzer",
   "version": "0.1.0",
   "private": true,
-  "description": "GitHub repository analyzer powered by IBM Bob API - A POC demonstrating AI-driven code analysis",
+  "description": "GitHub repository analyzer - Comprehensive insights for any GitHub repository",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,12 +11,15 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.7.2",
     "clsx": "^2.1.1",
     "lucide-react": "^0.378.0",
+    "mermaid": "^11.15.0",
     "next": "^16.2.6",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-mermaid2": "^0.1.4"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",

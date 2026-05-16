@@ -1,73 +1,85 @@
 /**
- * API Route: Direct Code Analysis
- * Analyzes code snippets directly without requiring a GitHub repository
+ * API Route: Repository Analysis
+ * Analyzes GitHub repositories using GitHub API and Gemini AI
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { analyzewithBob, getFeaturePrompt } from '@/lib/bob';
-import type { BobAnalysisResponse } from '@/types';
+import { fetchCompleteRepoData, parseRepoUrl } from '@/lib/github';
+import { analyzeCodeWithGemini } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<BobAnalysisResponse | { error: string }>
+  res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { code, question } = req.body;
+    const { repoUrl } = req.body;
 
-    if (!code && !question) {
-      return res.status(400).json({ error: 'Code or question is required' });
+    if (!repoUrl) {
+      return res.status(400).json({ error: 'Repository URL is required' });
     }
 
-    console.log(`[Code Analysis] Analyzing code snippet or question`);
-
-    // Build context from the provided code
-    const context = code
-      ? `# Code Snippet for Analysis\n\n\`\`\`\n${code}\n\`\`\`\n\n`
-      : '';
-
-    // Create appropriate prompt
-    let prompt: string;
-    if (question && code) {
-      // Question about specific code
-      prompt = `Analyze the following code and answer this question: ${question}\n\nProvide specific insights based on the code provided.`;
-    } else if (code) {
-      // Just code analysis
-      prompt = `Analyze this code snippet and provide insights on:
-1. What the code does
-2. Code quality and best practices
-3. Potential issues or improvements
-4. Security considerations
-5. Performance optimization opportunities
-
-Be specific and actionable in your analysis.`;
-    } else {
-      // Just a question
-      prompt = `Answer this question about code or software development: ${question}
-
-Provide a clear, detailed answer with examples where appropriate.`;
+    // Validate GitHub URL
+    const repo = parseRepoUrl(repoUrl);
+    if (!repo) {
+      return res.status(400).json({
+        error: 'Invalid GitHub repository URL. Please provide a valid GitHub URL (e.g., https://github.com/owner/repo or owner/repo)'
+      });
     }
 
-    // Analyze with Bob
-    const result = await analyzewithBob({
-      prompt,
-      context: context || 'General software development question',
-      feature: 'chat',
-      repoUrl: 'direct-code-input',
+    console.log(`[Analysis] Analyzing repository: ${repo.owner}/${repo.name}`);
+
+    // Fetch complete repository data from GitHub API
+    const repoData = await fetchCompleteRepoData(repoUrl);
+
+    console.log(`[Analysis] GitHub data fetched, starting AI analysis...`);
+
+    // Analyze code with Gemini AI
+    const aiAnalysis = await analyzeCodeWithGemini(repoData);
+
+    console.log(`[Analysis] Analysis complete for ${repo.owner}/${repo.name}`);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...repoData,
+        aiAnalysis,
+      },
+      timestamp: new Date().toISOString(),
     });
-
-    console.log(`[Code Analysis] Analysis complete`);
-
-    return res.status(200).json(result);
   } catch (error: any) {
-    console.error('[Code Analysis] Error:', error);
+    console.error('[Analysis] Error:', error);
+    
+    // Handle specific error cases
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        error: 'Repository not found. Please check the URL and try again.',
+      });
+    }
+    
+    if (error.message.includes('rate limit')) {
+      return res.status(429).json({
+        error: 'GitHub API rate limit exceeded. Please try again later.',
+      });
+    }
+
+    if (error.message.includes('GITHUB_TOKEN')) {
+      return res.status(500).json({
+        error: 'GitHub token is not configured. Please contact the administrator.',
+      });
+    }
+
+    if (error.message.includes('GEMINI_API_KEY')) {
+      return res.status(500).json({
+        error: 'Gemini API key is not configured. Please contact the administrator.',
+      });
+    }
+
     return res.status(500).json({
-      error: error.message || 'Failed to analyze code',
+      error: error.message || 'Failed to analyze repository',
     });
   }
 }
-
-// Made with Bob
