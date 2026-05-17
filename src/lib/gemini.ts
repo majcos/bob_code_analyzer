@@ -608,7 +608,7 @@ export async function analyzeRepositoryUnified(repoData: any): Promise<any> {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: {
-        temperature: 0.5,
+        temperature: 0.3, // Lower temperature for more consistent results
         topK: 40,
         topP: 0.95,
         maxOutputTokens: 16384, // Increased for comprehensive analysis
@@ -637,6 +637,8 @@ function buildUnifiedAnalysisPrompt(repoData: any): string {
   const { repo, languages, fileStructure, dependencies, readme } = repoData;
 
   let prompt = `You are an expert code analyst. Perform a COMPREHENSIVE analysis of this GitHub repository covering ALL aspects in ONE response.
+
+IMPORTANT: Be thorough and consistent. Always provide detailed analysis even if the repository appears well-structured.
 
 Repository: ${repo.name}
 Description: ${repo.description}
@@ -670,11 +672,15 @@ ${readmeExcerpt}
 Analyze the repository and provide a SINGLE comprehensive JSON response with ALL of the following sections:
 
 1. GENERAL CODE QUALITY ANALYSIS
-2. DEAD CODE DETECTION
+2. DEAD CODE DETECTION - Be thorough, look for unused imports, functions, variables, commented code
 3. TECH DEBT & ARCHITECTURE MAPPING
 4. CODE ISSUES EXTRACTION
 
-IMPORTANT: For Mermaid diagrams, use ONLY alphanumeric characters, spaces, hyphens, and underscores in node labels. NO parentheses or special characters.
+CRITICAL INSTRUCTIONS:
+- For dead code detection: Always analyze file structure and look for potential unused code. Even well-maintained repos have some dead code.
+- For health score: Calculate based on ALL factors including dead code, issues, and tech debt. Be consistent.
+- For Mermaid diagrams: Use ONLY alphanumeric characters, spaces, hyphens, and underscores in node labels. NO parentheses or special characters.
+- Provide the SAME analysis results for the SAME repository every time (deterministic).
 
 Provide response in this EXACT JSON format:
 {
