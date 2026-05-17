@@ -10,6 +10,19 @@ A Next.js application that provides an intuitive interface for automated code an
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Deployed on](https://img.shields.io/badge/Deployed%20on-Vercel-black)
+![Built with](https://img.shields.io/badge/Built%20with-IBM%20Bob%20AI-blue)
+
+## 🤖 Built Entirely with IBM Bob AI
+
+**This entire application was developed, debugged, and deployed using IBM Bob AI.**
+
+- 💻 **Code Generation**: All source code written by Bob AI
+- 🏗️ **Architecture Design**: System architecture and component structure designed by Bob AI
+- 🐛 **Debugging & Fixes**: All bugs identified and resolved by Bob AI
+- 🚀 **Deployment**: Complete deployment process handled by Bob AI
+- 📝 **Documentation**: All documentation created by Bob AI
+
+**Analysis Engine**: Google Gemini API is used solely for the code analysis features (identifying issues, technical debt, dead code). The application itself was built entirely by IBM Bob AI.
 
 ## ⚠️ Important Notes
 
@@ -302,12 +315,15 @@ MIT License
 
 ## Acknowledgments
 
-- Google Gemini for powerful AI-driven code analysis
-- GitHub for comprehensive REST API
-- Next.js team for excellent developer experience
-- Netlify for seamless deployment platform
-- Mermaid.js for beautiful diagram rendering
+- **IBM Bob AI** for building this entire application from concept to deployment
+- **Google Gemini** for providing the AI analysis engine for code insights
+- **GitHub** for comprehensive REST API
+- **Next.js** team for excellent developer experience
+- **Vercel** for seamless deployment platform
+- **Mermaid.js** for beautiful diagram rendering
 
 ---
 
-Built to showcase AI-powered code analysis in a modern, intuitive interface
+**Built entirely by IBM Bob AI** to showcase the power of AI-driven development and code analysis.
+
+This project demonstrates how IBM Bob AI can autonomously create, debug, and deploy production-ready applications while leveraging Google Gemini for specialized code analysis tasks.
