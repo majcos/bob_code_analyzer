@@ -24,6 +24,18 @@ A Next.js application that provides an intuitive interface for automated code an
 
 **Analysis Engine**: Google Gemini API is used solely for the code analysis features (identifying issues, technical debt, dead code). The application itself was built entirely by IBM Bob AI.
 
+## 🤖 Built Entirely with IBM Bob AI
+
+**This entire application was developed, debugged, and deployed using IBM Bob AI.**
+
+- 💻 **Code Generation**: All source code written by Bob AI
+- 🏗️ **Architecture Design**: System architecture and component structure designed by Bob AI
+- 🐛 **Debugging & Fixes**: All bugs identified and resolved by Bob AI
+- 🚀 **Deployment**: Complete deployment process handled by Bob AI
+- 📝 **Documentation**: All documentation created by Bob AI
+
+**Analysis Engine**: Google Gemini API is used solely for the code analysis features (identifying issues, technical debt, dead code). The application itself was built entirely by IBM Bob AI.
+
 ## ⚠️ Important Notes
 
 - **API Rate Limits**: This application uses Google Gemini's free tier, which has daily request limits
