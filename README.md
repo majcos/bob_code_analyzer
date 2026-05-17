@@ -4,9 +4,18 @@ AI-Powered GitHub Repository Analysis using Google Gemini API
 
 A Next.js application that provides an intuitive interface for automated code analysis. Analyze any GitHub repository to identify code issues, technical debt, dead code, and visualize architecture with Mermaid diagrams.
 
-![Next.js](https://img.shields.io/badge/Next.js-14.2-black)
+🌐 **Live Demo:** [https://bob-code-analyzer.vercel.app/](https://bob-code-analyzer.vercel.app/)
+
+![Next.js](https://img.shields.io/badge/Next.js-16.2-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Deployed on](https://img.shields.io/badge/Deployed%20on-Vercel-black)
+
+## ⚠️ Important Notes
+
+- **API Rate Limits**: This application uses Google Gemini's free tier, which has daily request limits
+- **Credits Reset**: AI analysis credits restore daily at midnight UTC
+- **Usage Recommendation**: Use the live demo for testing; deploy your own instance for production use
 
 ## Features
 
@@ -225,22 +234,34 @@ Edit `src/styles/globals.css` for global styles or modify Tailwind classes in co
 - No client-side exposure of credentials
 - Input validation on all endpoints
 
-## Deployment to Netlify
+## Deployment to Vercel
 
-See the detailed [NETLIFY_DEPLOYMENT_GUIDE.md](./NETLIFY_DEPLOYMENT_GUIDE.md) for step-by-step instructions.
+This application is deployed on Vercel for optimal Next.js performance.
 
-### Quick Deploy
+### Quick Deploy to Your Own Instance
 
-1. Push your code to GitHub
-2. Connect your repository to Netlify
-3. Set environment variables in Netlify Dashboard:
-   - `GITHUB_TOKEN`
-   - `GEMINI_API_KEY`
-   - `MAX_FILES_PER_REPO`
-   - `CACHE_DURATION_MS`
-4. Deploy!
+1. **Fork or clone this repository**
+2. **Go to [Vercel](https://vercel.com)** and sign in with GitHub
+3. **Click "Add New Project"** and select your repository
+4. **Add environment variables:**
+   - `GITHUB_TOKEN` - Your GitHub Personal Access Token
+   - `GEMINI_API_KEY` - Your Google Gemini API Key
+   - `MAX_FILES_PER_REPO` - `50`
+   - `CACHE_DURATION_MS` - `3600000`
+5. **Click "Deploy"**
 
-Your site will be live at `https://your-site.netlify.app`
+Your site will be live at `https://your-project.vercel.app` in 1-2 minutes!
+
+### Getting API Keys
+
+- **GitHub Token**: [Create here](https://github.com/settings/tokens) with `repo` scope
+- **Gemini API Key**: [Get here](https://aistudio.google.com/app/apikey) (free tier available)
+
+### API Rate Limits
+
+- **Gemini Free Tier**: Limited requests per day (resets daily at midnight UTC)
+- **GitHub API**: 5,000 requests/hour with authentication
+- For production use, consider upgrading to paid tiers for higher limits
 
 ## Troubleshooting
 
@@ -255,13 +276,14 @@ Verify your `GITHUB_TOKEN` is set correctly in `.env` and has the `repo` scope
 
 ### "Gemini API errors"
 - Check your `GEMINI_API_KEY` is valid
-- Verify you haven't exceeded the free tier limits (20 requests/day)
+- Verify you haven't exceeded the free tier limits
+- **Note**: Free tier credits reset daily at midnight UTC
 - Consider upgrading to a paid plan for higher limits
 
-### Build fails on Netlify
-- Ensure all environment variables are set in Netlify Dashboard
+### Build fails on Vercel
+- Ensure all environment variables are set in Vercel Dashboard
 - Check build logs for specific errors
-- Verify `netlify.toml` configuration is correct
+- Verify Node.js version is 20.9.0 or higher (configured in [`.nvmrc`](.nvmrc:1))
 
 ## Future Enhancements
 
