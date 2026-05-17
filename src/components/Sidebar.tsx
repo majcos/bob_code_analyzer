@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { FileText, AlertTriangle, Trash2, MessageCircle, Github } from 'lucide-react';
+import { FileText, AlertTriangle, Trash2, Github } from 'lucide-react';
 import { getRecentRepos, repoNameToUrl } from '@/lib/recentRepos';
 
 interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
-  demoMode: boolean;
-  onDemoModeToggle: () => void;
   onNewAnalysis: () => void;
   onRecentRepoClick?: (repoUrl: string) => void;
 }
@@ -15,8 +13,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onViewChange,
-  demoMode,
-  onDemoModeToggle,
   onNewAnalysis,
   onRecentRepoClick,
 }) => {
@@ -26,7 +22,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'summary', name: 'App Summary', icon: FileText },
     { id: 'techdebt', name: 'Tech Debt Map', icon: AlertTriangle },
     { id: 'deadcode', name: 'Dead Code', icon: Trash2 },
-    { id: 'chat', name: 'Friday Chat', icon: MessageCircle },
   ];
 
   // Load recent repos from localStorage
@@ -127,27 +122,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               No recent repos
             </p>
           )}
-        </div>
-      </div>
-
-      {/* Demo Mode Toggle - Bottom */}
-      <div className="mt-auto p-4">
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-primary-brown">Demo Mode</span>
-            <button
-              onClick={onDemoModeToggle}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                demoMode ? 'bg-primary-orange' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  demoMode ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
         </div>
       </div>
     </div>

@@ -84,7 +84,6 @@ export default function Home() {
   const [error, setError] = useState('');
   const [repoData, setRepoData] = useState<RepoData | null>(null);
   const [activeView, setActiveView] = useState('summary');
-  const [demoMode, setDemoMode] = useState(false);
   const [currentRepoUrl, setCurrentRepoUrl] = useState('');
 
   const analyzeRepo = async () => {
@@ -131,10 +130,6 @@ export default function Home() {
     setActiveView('summary');
   };
 
-  const handleDemoModeToggle = () => {
-    setDemoMode(!demoMode);
-  };
-
   const handleRecentRepoClick = (repoUrl: string) => {
     setRepoUrl(repoUrl);
     // Auto-trigger analysis when clicking a recent repo
@@ -164,8 +159,6 @@ export default function Home() {
         <Sidebar
           activeView={activeView}
           onViewChange={setActiveView}
-          demoMode={demoMode}
-          onDemoModeToggle={handleDemoModeToggle}
           onNewAnalysis={handleNewAnalysis}
           onRecentRepoClick={handleRecentRepoClick}
         />
