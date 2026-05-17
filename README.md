@@ -1,8 +1,8 @@
 # Bob Code Analyzer
 
-AI-Powered GitHub Repository Analysis using IBM Bob API
+AI-Powered GitHub Repository Analysis using Google Gemini API
 
-A Next.js application that provides ChatGPT-style interface for automated code analysis. Analyze any GitHub repository or ask questions about code through a conversational interface.
+A Next.js application that provides an intuitive interface for automated code analysis. Analyze any GitHub repository to identify code issues, technical debt, dead code, and visualize architecture with Mermaid diagrams.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14.2-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)
@@ -10,34 +10,34 @@ A Next.js application that provides ChatGPT-style interface for automated code a
 
 ## Features
 
-### Conversational Interface
-- ChatGPT-style chat interface
-- Single input field for all interactions
-- Support for text, images, and video attachments
-- Real-time streaming responses
-- Message history with context awareness
-
 ### Repository Analysis
-- Paste any GitHub repository URL for instant analysis
+- Analyze any GitHub repository by URL
 - Automatic detection of repository URLs
-- Comprehensive code insights
+- Comprehensive code quality insights
 - Technical debt identification
 - Dead code detection
+- Architecture visualization with Mermaid diagrams
 
-### Interactive Q&A
-- Ask questions about code
-- Get specific answers with file references
-- Context-aware responses
-- Follow-up question support
+### Multiple Analysis Views
+- **Code Issues**: Identify bugs, security vulnerabilities, and code smells
+- **Technical Debt**: Track maintainability issues and refactoring opportunities
+- **Dead Code**: Find unused functions, variables, and imports
+- **Architecture**: Visualize system architecture with interactive Mermaid diagrams
+
+### Smart Analysis
+- AI-powered insights using Google Gemini
+- Context-aware recommendations
+- File-level issue tracking
+- Severity-based prioritization
 
 ## Architecture
 
 ```
 GitHub Repo URL
       ↓
-[Next.js Frontend] → [Next.js API Routes] → [IBM Bob API]
+[Next.js Frontend] → [Next.js API Routes] → [Google Gemini API]
       ↓                      ↓
-  Chat Interface        GitHub REST API
+  Analysis Views        GitHub REST API
                         (fetch raw files)
 ```
 
@@ -45,20 +45,20 @@ GitHub Repo URL
 
 1. **GitHub Ingestion Layer**
    - Fetches repository file tree via GitHub REST API
-   - Downloads raw file contents for `.js`, `.ts`, `.tsx`, `.jsx` files
+   - Downloads raw file contents for `.js`, `.ts`, `.tsx`, `.jsx`, `.py`, `.java`, etc.
    - Extracts `package.json` for dependency context
    - Optimized for performance (50 file limit)
 
-2. **Bob Analysis Layer**
-   - Context-aware prompts for analysis
-   - Injects full repository context
-   - Returns structured analysis results
-   - Supports multiple analysis types
+2. **Gemini Analysis Layer**
+   - AI-powered code analysis using Google Gemini 2.0 Flash
+   - Context-aware prompts for different analysis types
+   - Structured JSON responses
+   - Supports multiple analysis modes
 
 3. **Next.js Frontend Layer**
-   - ChatGPT-style conversational interface
-   - Real-time message updates
-   - File attachment support (images, videos, documents)
+   - Modern tabbed interface for different analysis views
+   - Real-time analysis results
+   - Interactive Mermaid diagram rendering
    - Responsive design with Tailwind CSS
 
 ## Getting Started
@@ -66,8 +66,8 @@ GitHub Repo URL
 ### Prerequisites
 
 - Node.js 18+ and npm
-- GitHub Personal Access Token
-- IBM Bob API credentials
+- GitHub Personal Access Token ([Create one here](https://github.com/settings/tokens))
+- Google Gemini API Key ([Get one here](https://aistudio.google.com/app/apikey))
 
 ### Installation
 
@@ -87,10 +87,14 @@ GitHub Repo URL
    Create a `.env` file in the root directory:
    ```env
    GITHUB_TOKEN=your_github_personal_access_token
-   BOB_API_URL=https://your-bob-api-endpoint.com
-   BOB_API_KEY=your_bob_api_key
+   GEMINI_API_KEY=your_gemini_api_key
    MAX_FILES_PER_REPO=50
+   CACHE_DURATION_MS=3600000
    ```
+
+   **How to get your API keys:**
+   - **GitHub Token**: Go to [GitHub Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens) and create a token with `repo` scope
+   - **Gemini API Key**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey) and create a new API key
 
 4. Add your logo (optional)
 
@@ -107,32 +111,29 @@ GitHub Repo URL
 
 ### Analyzing a Repository
 
-Simply paste a GitHub repository URL in the chat:
-```
-https://github.com/owner/repo
-```
-or
-```
-owner/repo
-```
+1. Enter a GitHub repository URL in the input field:
+   ```
+   https://github.com/owner/repo
+   ```
+   or use the shorthand format:
+   ```
+   owner/repo
+   ```
 
-Bob will automatically analyze the repository and provide insights.
+2. Click "Analyze Repository" or press Enter
 
-### Asking Questions
+3. View results in different tabs:
+   - **Code Issues**: See bugs, security issues, and code smells
+   - **Technical Debt**: Review maintainability concerns
+   - **Dead Code**: Find unused code
+   - **Architecture**: Visualize system structure
 
-Ask any question about code:
-```
-What are common security vulnerabilities in Node.js apps?
-```
+### Understanding Results
 
-If you've previously analyzed a repository, Bob will answer in that context.
-
-### Attaching Files
-
-Click the paperclip icon to attach:
-- Images (PNG, JPG, GIF)
-- Videos (MP4, WebM)
-- Documents (PDF, TXT, DOC)
+- **Severity Levels**: Critical, High, Medium, Low
+- **File References**: Click to see exact locations
+- **Recommendations**: AI-powered suggestions for fixes
+- **Mermaid Diagrams**: Interactive architecture visualizations
 
 ## Project Structure
 
@@ -147,10 +148,10 @@ bob-code-analyzer/
 │   ├── pages/
 │   │   ├── api/
 │   │   │   └── analyze/
-│   │   │       ├── summary.ts    # App summary endpoint
-│   │   │       ├── techdebt.ts   # Tech debt endpoint
-│   │   │       ├── deadcode.ts   # Dead code endpoint
-│   │   │       └── chat.ts       # Chat endpoint
+│   │   │       ├── code.ts       # Code issues analysis
+│   │   │       ├── techdebt.ts   # Tech debt analysis
+│   │   │       ├── deadcode.ts   # Dead code detection
+│   │   │       └── issues.ts     # General issues endpoint
 │   │   ├── _app.tsx          # Next.js app wrapper
 │   │   └── index.tsx         # Main chat interface
 │   ├── styles/
@@ -167,17 +168,24 @@ bob-code-analyzer/
 
 ## API Endpoints
 
-### POST `/api/analyze/summary`
-Analyzes repository and returns app summary.
+### POST `/api/analyze/code`
+Analyzes code quality and identifies issues.
+
+**Request Body:**
+```json
+{
+  "repoUrl": "owner/repo"
+}
+```
 
 ### POST `/api/analyze/techdebt`
-Identifies technical debt and code quality issues.
+Identifies technical debt and maintainability issues.
 
 ### POST `/api/analyze/deadcode`
-Finds unused functions and exports.
+Finds unused functions, variables, and imports.
 
-### POST `/api/analyze/chat`
-Interactive Q&A about code or repositories.
+### POST `/api/analyze/issues`
+General issue detection and analysis.
 
 ## Performance Optimizations
 
@@ -202,11 +210,12 @@ Edit `src/styles/globals.css` for global styles or modify Tailwind classes in co
 
 ## Technology Stack
 
-- **Frontend:** Next.js 14, React 18, TypeScript 5
+- **Frontend:** Next.js 16, React 18, TypeScript 5
 - **Styling:** Tailwind CSS 3
 - **Icons:** Lucide React
 - **API Integration:** Axios
-- **AI:** IBM Bob API
+- **AI:** Google Gemini 2.0 Flash
+- **Diagrams:** Mermaid.js
 - **Data Source:** GitHub REST API
 
 ## Security
@@ -215,6 +224,23 @@ Edit `src/styles/globals.css` for global styles or modify Tailwind classes in co
 - Server-side API calls only
 - No client-side exposure of credentials
 - Input validation on all endpoints
+
+## Deployment to Netlify
+
+See the detailed [NETLIFY_DEPLOYMENT_GUIDE.md](./NETLIFY_DEPLOYMENT_GUIDE.md) for step-by-step instructions.
+
+### Quick Deploy
+
+1. Push your code to GitHub
+2. Connect your repository to Netlify
+3. Set environment variables in Netlify Dashboard:
+   - `GITHUB_TOKEN`
+   - `GEMINI_API_KEY`
+   - `MAX_FILES_PER_REPO`
+   - `CACHE_DURATION_MS`
+4. Deploy!
+
+Your site will be live at `https://your-site.netlify.app`
 
 ## Troubleshooting
 
@@ -225,22 +251,28 @@ npm install
 ```
 
 ### "GitHub API rate limit exceeded"
-Verify your `GITHUB_TOKEN` is set correctly in `.env`
+Verify your `GITHUB_TOKEN` is set correctly in `.env` and has the `repo` scope
 
-### "Bob API is not responding"
-Check `BOB_API_URL` and `BOB_API_KEY` in `.env`
+### "Gemini API errors"
+- Check your `GEMINI_API_KEY` is valid
+- Verify you haven't exceeded the free tier limits (20 requests/day)
+- Consider upgrading to a paid plan for higher limits
 
-### Logo not showing
-Ensure `public/logo.png` exists and is a valid image file
+### Build fails on Netlify
+- Ensure all environment variables are set in Netlify Dashboard
+- Check build logs for specific errors
+- Verify `netlify.toml` configuration is correct
 
-## Contributing
+## Future Enhancements
 
-This is a production-ready application. For enhancements:
-- Add response caching
-- Implement streaming responses
-- Support multiple branches
-- Add user authentication
-- Expand file type support
+Potential improvements for this application:
+- Add response caching for faster repeated analyses
+- Implement real-time streaming for large repositories
+- Support analyzing specific branches
+- Add user authentication and saved analyses
+- Expand file type support beyond JavaScript/TypeScript
+- Add custom rule configuration
+- Export reports as PDF or Markdown
 
 ## License
 
@@ -248,11 +280,12 @@ MIT License
 
 ## Acknowledgments
 
-- IBM Bob API for AI-driven code analysis
+- Google Gemini for powerful AI-driven code analysis
 - GitHub for comprehensive REST API
 - Next.js team for excellent developer experience
-- Vercel for deployment platform
+- Netlify for seamless deployment platform
+- Mermaid.js for beautiful diagram rendering
 
 ---
 
-Built to showcase IBM Bob's capabilities in a modern, conversational interface
+Built to showcase AI-powered code analysis in a modern, intuitive interface

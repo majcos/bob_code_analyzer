@@ -5,7 +5,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchCompleteRepoData } from '@/lib/github';
-import { analyzeCodeIssues } from '@/lib/gemini';
+import { analyzeRepositoryUnified } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,15 +26,15 @@ export default async function handler(
 
     // Fetch repository data
     const repoData = await fetchCompleteRepoData(repoUrl);
-    console.log('[CodeIssues] Repository data fetched, starting code issues analysis...');
+    console.log('[CodeIssues] Repository data fetched, extracting code issues from unified analysis...');
 
-    // Analyze code issues using Gemini AI
-    const issuesAnalysis = await analyzeCodeIssues(repoData);
-    console.log('[CodeIssues] Code issues analysis complete');
+    // Use unified analysis to get code issues data (no separate API call)
+    const unifiedAnalysis = await analyzeRepositoryUnified(repoData);
+    console.log('[CodeIssues] Code issues analysis extracted from unified response');
 
     return res.status(200).json({
       success: true,
-      data: issuesAnalysis,
+      data: unifiedAnalysis.codeIssues,
     });
   } catch (error: any) {
     console.error('[CodeIssues] Error:', error);

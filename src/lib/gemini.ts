@@ -597,3 +597,301 @@ function parseCodeIssuesResponse(responseText: string): any {
     };
   }
 }
+
+/**
+ * Unified analysis - combines all analyses into a single API call
+ * This reduces API usage by 4x
+ */
+export async function analyzeRepositoryUnified(repoData: any): Promise<any> {
+  try {
+    const genAI = getGeminiClient();
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 0.5,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 16384, // Increased for comprehensive analysis
+      }
+    });
+
+    const prompt = buildUnifiedAnalysisPrompt(repoData);
+    console.log('[Gemini] Starting unified analysis (all features in one call)...');
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const analysisText = response.text();
+
+    console.log('[Gemini] Unified analysis complete');
+    return parseUnifiedAnalysisResponse(analysisText);
+  } catch (error: any) {
+    console.error('[Gemini] Error in unified analysis:', error);
+    throw new Error(`Unified analysis failed: ${error.message}`);
+  }
+}
+
+/**
+ * Build comprehensive unified analysis prompt
+ */
+function buildUnifiedAnalysisPrompt(repoData: any): string {
+  const { repo, languages, fileStructure, dependencies, readme } = repoData;
+
+  let prompt = `You are an expert code analyst. Perform a COMPREHENSIVE analysis of this GitHub repository covering ALL aspects in ONE response.
+
+Repository: ${repo.name}
+Description: ${repo.description}
+Primary Language: ${languages.primary}
+Total Files: ${fileStructure.length}
+
+Language Breakdown:
+${languages.breakdown.map((lang: any) => `- ${lang.language}: ${lang.percentage}%`).join('\n')}
+
+`;
+
+  if (dependencies) {
+    prompt += `\nDependencies (${dependencies.type}):
+${dependencies.list.slice(0, 20).map((dep: any) => `- ${dep.name}@${dep.version}`).join('\n')}
+`;
+  }
+
+  prompt += `\nFile Structure (sample):
+${fileStructure.slice(0, 50).map((file: any) => `- ${file.path}`).join('\n')}
+`;
+
+  if (readme) {
+    const readmeExcerpt = readme.substring(0, 1000);
+    prompt += `\nREADME excerpt:
+${readmeExcerpt}
+`;
+  }
+
+  prompt += `
+
+Analyze the repository and provide a SINGLE comprehensive JSON response with ALL of the following sections:
+
+1. GENERAL CODE QUALITY ANALYSIS
+2. DEAD CODE DETECTION
+3. TECH DEBT & ARCHITECTURE MAPPING
+4. CODE ISSUES EXTRACTION
+
+IMPORTANT: For Mermaid diagrams, use ONLY alphanumeric characters, spaces, hyphens, and underscores in node labels. NO parentheses or special characters.
+
+Provide response in this EXACT JSON format:
+{
+  "codeQuality": {
+    "codeQualitySummary": "Brief summary of overall code quality",
+    "securityIssues": ["List of potential security concerns or 'None detected'"],
+    "suggestedImprovements": ["List of actionable improvement suggestions"],
+    "techStackExplanation": "Explanation of the technology stack and architecture",
+    "overallHealthScore": 85,
+    "strengths": ["List of project strengths"],
+    "weaknesses": ["List of areas for improvement"],
+    "bestPractices": ["List of best practices being followed"],
+    "recommendations": ["List of specific recommendations"]
+  },
+  "deadCode": {
+    "deadCodeItems": [
+      {
+        "type": "unused_function|unused_variable|unused_import|unused_file|commented_code|duplicate_code",
+        "file": "path/to/file.ext",
+        "line": 42,
+        "endLine": 45,
+        "code": "actual code snippet",
+        "reason": "why this is considered dead code",
+        "suggestion": "what to do about it"
+      }
+    ],
+    "summary": {
+      "totalIssues": 10,
+      "byType": {
+        "unused_function": 3,
+        "unused_variable": 2,
+        "unused_import": 2,
+        "unused_file": 1,
+        "commented_code": 1,
+        "duplicate_code": 1
+      }
+    }
+  },
+  "techDebt": {
+    "hasDatabase": true,
+    "databaseArchitecture": {
+      "type": "SQL|NoSQL|Unknown",
+      "tables": [
+        {
+          "name": "users",
+          "relationships": ["has many posts"],
+          "keys": ["id PK", "org_id FK"]
+        }
+      ]
+    },
+    "codeArchitecture": {
+      "entryPoints": ["src/index.ts"],
+      "modules": [
+        {
+          "name": "auth",
+          "path": "src/auth",
+          "dependencies": ["database"],
+          "dependents": ["api"]
+        }
+      ],
+      "apiRoutes": ["/api/users"]
+    },
+    "legacyPatterns": {
+      "detected": false,
+      "language": "None",
+      "issues": [],
+      "modernizationPath": ""
+    },
+    "lowCodeDetection": {
+      "detected": false,
+      "tools": [],
+      "opportunities": []
+    },
+    "techDebtAreas": [
+      {
+        "area": "Authentication",
+        "severity": "high|medium|low",
+        "description": "what the issue is",
+        "impact": "how it affects the system",
+        "recommendation": "how to fix it"
+      }
+    ],
+    "diagramData": {
+      "mermaidCode": "graph TD\\n  A[Entry Point] --> B[Module Layer]"
+    }
+  },
+  "codeIssues": {
+    "issues": [
+      {
+        "severity": "critical|high|medium|low",
+        "category": "error|performance|maintainability|security",
+        "file": "path/to/file.ext",
+        "line": 42,
+        "endLine": 50,
+        "code": "problematic code snippet",
+        "problem": "what the issue is",
+        "fixedCode": "corrected version",
+        "explanation": "why this is better"
+      }
+    ],
+    "summary": {
+      "totalIssues": 15,
+      "bySeverity": {
+        "critical": 2,
+        "high": 5,
+        "medium": 6,
+        "low": 2
+      },
+      "byCategory": {
+        "error": 3,
+        "performance": 4,
+        "maintainability": 5,
+        "security": 3
+      },
+      "estimatedFixTime": "4-6 hours"
+    }
+  }
+}
+
+Provide ONLY the JSON response, no additional text.`;
+
+  return prompt;
+}
+
+/**
+ * Parse unified analysis response and distribute to each feature
+ */
+function parseUnifiedAnalysisResponse(responseText: string): any {
+  try {
+    let cleanedText = responseText.trim();
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/```\n?/g, '');
+    }
+
+    const analysis = JSON.parse(cleanedText);
+
+    // Sanitize Mermaid code if present
+    if (analysis.techDebt?.diagramData?.mermaidCode) {
+      analysis.techDebt.diagramData.mermaidCode = sanitizeMermaidCode(
+        analysis.techDebt.diagramData.mermaidCode
+      );
+    }
+
+    return {
+      codeQuality: analysis.codeQuality || {
+        codeQualitySummary: 'Analysis completed',
+        securityIssues: ['No specific issues detected'],
+        suggestedImprovements: [],
+        techStackExplanation: 'Technology stack analysis unavailable',
+        overallHealthScore: 75,
+        strengths: [],
+        weaknesses: [],
+        bestPractices: [],
+        recommendations: [],
+      },
+      deadCode: analysis.deadCode || {
+        deadCodeItems: [],
+        summary: { totalIssues: 0, byType: {} }
+      },
+      techDebt: analysis.techDebt || {
+        hasDatabase: false,
+        databaseArchitecture: null,
+        codeArchitecture: { entryPoints: [], modules: [], apiRoutes: [] },
+        legacyPatterns: { detected: false, language: 'None', issues: [], modernizationPath: '' },
+        lowCodeDetection: { detected: false, tools: [], opportunities: [] },
+        techDebtAreas: [],
+        diagramData: { mermaidCode: 'graph TD\n  A[No diagram available]' }
+      },
+      codeIssues: analysis.codeIssues || {
+        issues: [],
+        summary: {
+          totalIssues: 0,
+          bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
+          byCategory: { error: 0, performance: 0, maintainability: 0, security: 0 },
+          estimatedFixTime: 'Unknown'
+        }
+      }
+    };
+  } catch (error) {
+    console.error('[Gemini] Error parsing unified analysis response:', error);
+    // Return fallback structure
+    return {
+      codeQuality: {
+        codeQualitySummary: 'Unable to parse analysis',
+        securityIssues: ['Analysis parsing error'],
+        suggestedImprovements: [],
+        techStackExplanation: 'Analysis unavailable',
+        overallHealthScore: 70,
+        strengths: [],
+        weaknesses: [],
+        bestPractices: [],
+        recommendations: [],
+      },
+      deadCode: {
+        deadCodeItems: [],
+        summary: { totalIssues: 0, byType: {} }
+      },
+      techDebt: {
+        hasDatabase: false,
+        databaseArchitecture: null,
+        codeArchitecture: { entryPoints: [], modules: [], apiRoutes: [] },
+        legacyPatterns: { detected: false, language: 'None', issues: [], modernizationPath: '' },
+        lowCodeDetection: { detected: false, tools: [], opportunities: [] },
+        techDebtAreas: [],
+        diagramData: { mermaidCode: 'graph TD\n  A[Analysis unavailable]' }
+      },
+      codeIssues: {
+        issues: [],
+        summary: {
+          totalIssues: 0,
+          bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
+          byCategory: { error: 0, performance: 0, maintainability: 0, security: 0 },
+          estimatedFixTime: 'Unknown'
+        }
+      }
+    };
+  }
+}

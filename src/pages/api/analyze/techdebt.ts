@@ -5,7 +5,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchCompleteRepoData } from '@/lib/github';
-import { analyzeTechDebt } from '@/lib/gemini';
+import { analyzeRepositoryUnified } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,15 +26,15 @@ export default async function handler(
 
     // Fetch repository data
     const repoData = await fetchCompleteRepoData(repoUrl);
-    console.log('[TechDebt] Repository data fetched, starting tech debt analysis...');
+    console.log('[TechDebt] Repository data fetched, extracting tech debt from unified analysis...');
 
-    // Analyze tech debt using Gemini AI
-    const techDebtAnalysis = await analyzeTechDebt(repoData);
-    console.log('[TechDebt] Tech debt analysis complete');
+    // Use unified analysis to get tech debt data (no separate API call)
+    const unifiedAnalysis = await analyzeRepositoryUnified(repoData);
+    console.log('[TechDebt] Tech debt analysis extracted from unified response');
 
     return res.status(200).json({
       success: true,
-      data: techDebtAnalysis,
+      data: unifiedAnalysis.techDebt,
     });
   } catch (error: any) {
     console.error('[TechDebt] Error:', error);

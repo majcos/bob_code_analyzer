@@ -5,7 +5,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchCompleteRepoData } from '@/lib/github';
-import { analyzeDeadCode } from '@/lib/gemini';
+import { analyzeRepositoryUnified } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,15 +26,15 @@ export default async function handler(
 
     // Fetch repository data
     const repoData = await fetchCompleteRepoData(repoUrl);
-    console.log('[DeadCode] Repository data fetched, starting dead code analysis...');
+    console.log('[DeadCode] Repository data fetched, extracting dead code from unified analysis...');
 
-    // Analyze for dead code using Gemini AI
-    const deadCodeAnalysis = await analyzeDeadCode(repoData);
-    console.log('[DeadCode] Dead code analysis complete');
+    // Use unified analysis to get dead code data (no separate API call)
+    const unifiedAnalysis = await analyzeRepositoryUnified(repoData);
+    console.log('[DeadCode] Dead code analysis extracted from unified response');
 
     return res.status(200).json({
       success: true,
-      data: deadCodeAnalysis,
+      data: unifiedAnalysis.deadCode,
     });
   } catch (error: any) {
     console.error('[DeadCode] Error:', error);

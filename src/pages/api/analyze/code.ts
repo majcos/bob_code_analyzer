@@ -5,7 +5,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchCompleteRepoData, parseRepoUrl } from '@/lib/github';
-import { analyzeCodeWithGemini } from '@/lib/gemini';
+import { analyzeRepositoryUnified } from '@/lib/gemini';
 
 export default async function handler(
   req: NextApiRequest,
@@ -35,18 +35,19 @@ export default async function handler(
     // Fetch complete repository data from GitHub API
     const repoData = await fetchCompleteRepoData(repoUrl);
 
-    console.log(`[Analysis] GitHub data fetched, starting AI analysis...`);
+    console.log(`[Analysis] GitHub data fetched, starting unified AI analysis...`);
 
-    // Analyze code with Gemini AI
-    const aiAnalysis = await analyzeCodeWithGemini(repoData);
+    // Perform unified analysis (all features in one API call)
+    const unifiedAnalysis = await analyzeRepositoryUnified(repoData);
 
-    console.log(`[Analysis] Analysis complete for ${repo.owner}/${repo.name}`);
+    console.log(`[Analysis] Unified analysis complete for ${repo.owner}/${repo.name}`);
 
     return res.status(200).json({
       success: true,
       data: {
         ...repoData,
-        aiAnalysis,
+        aiAnalysis: unifiedAnalysis.codeQuality,
+        unifiedAnalysis, // Include full unified analysis for other endpoints
       },
       timestamp: new Date().toISOString(),
     });
