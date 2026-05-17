@@ -1,4 +1,4 @@
-# Bob Code Analyzer
+Legacy System Code Analyzer
 
 AI-Powered GitHub Repository Analysis using Google Gemini API
 
